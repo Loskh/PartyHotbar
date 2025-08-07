@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35303.130
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PartyHotbar", "PartyHotbar.csproj", "{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Debug|x64.Build.0 = Debug|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Release|x64.ActiveCfg = Release|Any CPU
+		{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A233B4B6-60E2-47D0-97B3-F4AD37654422}
+	EndGlobalSection
+EndGlobal

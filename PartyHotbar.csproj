@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<Version>1.0.1.0</Version>
+		<IncludeSymbols>False</IncludeSymbols>
+		<LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="lib\**" />
+	  <EmbeddedResource Remove="lib\**" />
+	  <None Remove="lib\**" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="DalamudPackager" Version="12.0.0" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<Reference Include="Dalamud">
+			<Private>false</Private>
+			<HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
+		</Reference>
+		<Reference Include="FFXIVClientStructs">
+			<Private>false</Private>
+			<HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+		</Reference>
+		<Reference Include="ImGui.NET">
+			<Private>false</Private>
+		  <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
+		</Reference>
+		<Reference Include="Lumina">
+			<Private>false</Private>
+			<HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
+		</Reference>
+		<Reference Include="Lumina.Excel">
+			<Private>false</Private>
+			<HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
+		</Reference>
+		<Reference Include="InteropGenerator.Runtime">
+			<Private>false</Private>
+			<HintPath>$(DalamudLibPath)InteropGenerator.Runtime.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+
+</Project>
