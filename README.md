@@ -1,5 +1,5 @@
 # PartyHotbar
-A FFXIV Dalamud Plugin.Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.\nEach hotkey bar can have a maximum of 4 buttons.\nA re-login is required to enable this feature.  
+A FFXIV Dalamud Plugin.Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.Each hotkey bar can have a maximum of 4 buttons.A re-login is required to enable this feature.  
 在PartyList Hud的一侧的每个队员旁边增加一条热键栏以便于对队员快速释放技能，每条热键栏至多有4个按钮。需要重新登录以启用。  
 
 This is also an experiment that uses the game's built-in ULD resources to construct a custom UI, rather than creating various components from scratch.  
