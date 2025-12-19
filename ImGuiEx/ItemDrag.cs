@@ -1,8 +1,11 @@
-﻿using System;
+﻿using Dalamud.Interface.Utility;
+using Dalamud.Utility;
+using System;
 using System.Numerics;
-using Dalamud.Interface.Utility;
 
-namespace ImGuiNET;
+using Dalamud.Bindings.ImGui;
+
+namespace PartyHotbar.ImGuiEx;
 
 public static partial class ImGuiEx
 {
@@ -66,6 +69,24 @@ public static partial class ImGuiEx
         return ret;
     }
 
+    public static bool IsNumeric(object o) => o switch
+    {
+        //Int128 => true, UInt128 => true,
+        //nint => true, nuint => true,
+        long => true,
+        ulong => true,
+        int => true,
+        uint => true,
+        short => true,
+        ushort => true,
+        sbyte => true,
+        byte => true,
+        double => true,
+        float => true,
+        decimal => true,
+        _ => false
+    };
+
     private static bool GetDragLock(object id, ImGuiMouseButton button)
     {
         if (isDraggingItem && !ImGui.IsAnyMouseDown())
@@ -80,7 +101,7 @@ public static partial class ImGuiEx
         var imguiID = id switch
         {
             string s => ImGui.GetID(s),
-            _ when ImGuiEx.IsNumeric(id) => ImGui.GetID(id.ToString()),
+            _ when IsNumeric(id) => ImGui.GetID(id.ToString()),
             _ => id
         };
 

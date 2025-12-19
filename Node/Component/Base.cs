@@ -1,4 +1,5 @@
 ﻿using Dalamud.Game.Addon.Events;
+using Dalamud.Game.Addon.Events.EventDataTypes;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
 using FFXIVClientStructs.FFXIV.Client.System.Resource;
@@ -6,6 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -31,22 +33,7 @@ internal unsafe class Base : IDisposable
     public delegate void EventDelegate(AddonEventType atkEventType, Base senderComponent, AddonEventData data);
     public Dictionary<AddonEventType, EventDelegate> Events { get; init; } = new();
     internal Dictionary<AddonEventType, IAddonEventHandle> EventHandles = new();
-    public EventDelegate? OnClick
-    {
-        get
-        {
-            return field;
-        }
-        set
-        {
-            field = value;
-            if (value != null)
-            {
-                Events[AddonEventType.MouseClick] = field;
-            }
-
-        }
-    }
+    public EventDelegate? OnClick;
     public AtkUnitBase* Addon { get; private set; } = null;
     internal AtkCollisionNode* CollisionNode { get; init; } = null;
 
@@ -122,7 +109,7 @@ internal unsafe class Base : IDisposable
         componentNode->Component->OwnerNode = componentNode;
         componentNode->Component->UldManager.UldResourceHandle = uldManager->UldResourceHandle;
         componentNode->Component->UldManager.ResourceFlags = AtkUldManagerResourceFlag.Initialized;
-        componentNode->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.RespondToMouse | NodeFlags.EmitsEvents;
+        componentNode->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.EmitsEvents;
 
         var resourcePtr = uldManager->UldResourceHandle->GetData();
         var componentResourcePtr = (byte*)(char*)&resourcePtr[*((uint*)resourcePtr + 2)];

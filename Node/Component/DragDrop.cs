@@ -1,9 +1,11 @@
 ﻿using Dalamud.Game.Addon.Events;
+using Dalamud.Game.Addon.Events.EventDataTypes;
 using Dalamud.Interface.FontIdentifier;
 using FFXIVClientStructs.FFXIV.Client.Graphics;
 using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Common.Math;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -80,7 +82,7 @@ namespace PartyHotbar.Node.Component
                 if (value != field)
                 {
                     field = value;
-                    StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.PlayOnce, (byte)(value ? 19 : 22));
+                    StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.PlayOnce, (ushort)(value ? 19 : 22));
                 }
             }
         }
@@ -141,11 +143,17 @@ namespace PartyHotbar.Node.Component
         private static SetFrameDelegate setFrame = Marshal.GetDelegateForFunctionPointer<SetFrameDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 89 6B 30 "));
 
         private delegate uint getFrameByLabelIdDelegate(AtkResNode* node, ushort labelId);
-        private static getFrameByLabelIdDelegate getFrameByLabelId = Marshal.GetDelegateForFunctionPointer<getFrameByLabelIdDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 66 3B F0 75 77  "));
+        private static getFrameByLabelIdDelegate getFrameByLabelId = Marshal.GetDelegateForFunctionPointer<getFrameByLabelIdDelegate>(Service.SigScanner.ScanText("44 0F B7 CA 48 85 C9 74 60"));
         public unsafe DragDrop() : base("ui/uld/ActionBarCustom.uld", 1002, ComponentType.DragDrop)
         {
+            Node->NodeFlags = NodeFlags.AnchorTop | NodeFlags.AnchorLeft | NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.EmitsEvents; 
             Component = (AtkComponentDragDrop*)Node->Component;
             Component->AtkComponentIcon = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentIcon();
+            Component->Flags = DragDropFlag.Clickable | DragDropFlag.Locked;
+            Component->AtkDragDropInterface.DragDropType = DragDropType.ActionBar_Action;
+            Component->AtkDragDropInterface.ActiveNode = Component->UldManager.SearchNodeById(4);
+            Component->AtkDragDropInterface.ComponentNode = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentNode();
+            Component->ComponentFlags = 1;
             ComponentIcon = Component->AtkComponentIcon;
             ChargeIndicatorNode = ComponentIcon->UldManager.SearchNodeById(10)->GetAsAtkImageNode();
             StateNode = ComponentIcon->UldManager.SearchNodeById(16);
@@ -170,10 +178,12 @@ namespace PartyHotbar.Node.Component
             Visible = false;
 
             CollisionNode = Component->UldManager.SearchNodeById(4)->GetAsAtkCollisionNode();
-            Events[AddonEventType.MouseOver] = MouseOver;
-            Events[AddonEventType.MouseOut] = MouseOut;
-            Events[AddonEventType.MouseDown] = (atkEventType, sender, data) => dragDropComponentPlayAnimation(Component, 3);
-            Events[AddonEventType.MouseUp] = (atkEventType, sender, data) => dragDropComponentPlayAnimation(Component, 6);
+
+            Events[AddonEventType.MouseOver] = ProcessEvents;
+            Events[AddonEventType.MouseOut] = ProcessEvents;
+            Events[AddonEventType.MouseDown] = ProcessEvents;
+            Events[AddonEventType.MouseUp] = ProcessEvents;
+            Events[AddonEventType.MouseClick] = ProcessEvents;
         }
         private void LoadIcon(uint iconId)
         {
@@ -194,11 +204,11 @@ namespace PartyHotbar.Node.Component
 
             if (percent == 100)
             {
-                StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 25);
+                StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, (ushort)25);
             }
             else
             {
-                StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Start, 19);
+                StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Start, (ushort)19);
             }
         }
         private void SetCharge(ushort percent)
@@ -209,26 +219,45 @@ namespace PartyHotbar.Node.Component
                 setFrame(ChargeNode, (int)((int)(percent * 0.0099999998f * 81) + frame));
                 return;
             }
-            ChargeNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Initialize, 17);
+            ChargeNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Initialize, (ushort)17);
         }
 
         public void Reset()
         {
-            ChargeNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Initialize, 17);
-            StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Start, 19);
+            ChargeNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Initialize, (ushort)17);
+            StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Start, (ushort)19);
         }
 
-        private void MouseOut(AddonEventType atkEventType, Base senderComponent, AddonEventData data)
+        private void ProcessEvents(AddonEventType atkEventType, Base senderComponent, AddonEventData data)
         {
-            Service.AddonEventManager.ResetCursor();
-            //Node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 4);
-            dragDropComponentPlayAnimation(Component, 4);
-        }
-
-        private void MouseOver(AddonEventType atkEventType, Base senderComponent, AddonEventData data)
-        {
-            Service.AddonEventManager.SetCursor(AddonCursorType.Clickable);
-            dragDropComponentPlayAnimation(Component, 2);
+            if (!this.Visible)
+            {
+                return;
+            }
+            switch (atkEventType)
+            {
+                case AddonEventType.MouseClick:
+                    this.OnClick?.Invoke(AddonEventType.MouseClick,senderComponent,data);
+                    break;
+                case AddonEventType.MouseOut:
+                    Service.AddonEventManager.ResetCursor();
+                    //Node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 4);
+                    dragDropComponentPlayAnimation(Component, 4);
+                    break;
+                case AddonEventType.MouseOver:
+                    Service.AddonEventManager.SetCursor(AddonCursorType.Clickable);
+                    dragDropComponentPlayAnimation(Component, 2);
+                    break;
+                case AddonEventType.MouseDown:
+                    dragDropComponentPlayAnimation(Component, 3);
+                    break;
+                case AddonEventType.MouseUp:
+                    dragDropComponentPlayAnimation(Component, 6);
+                    break;
+                default:
+                    Log.Information("Unhandled event type: {EventType}", atkEventType);
+                    return;
+            }
         }
     }
 }

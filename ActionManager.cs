@@ -7,6 +7,8 @@ using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using InteropGenerator.Runtime;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static PartyHotbar.Windows.ConfigWindow;
@@ -53,7 +55,7 @@ internal unsafe class ActionManager
         this.canCast = Marshal.GetDelegateForFunctionPointer<canCastDelegate>(Service.SigScanner.ScanText("48 83 EC 48 48 C7 44 24 ?? ?? ?? ?? ?? 41 B9"));
         //this.getActionRecastData = Marshal.GetDelegateForFunctionPointer<getActionRecastDataDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 8B 4C 24 50 89 4F 1C "));
         //this.getActionRecastData = Marshal.GetDelegateForFunctionPointer<getActionRecastDataDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B6 44 24 ?? 44 8B C6 F3 0F 10 44 24 "));
-        this.getHotbarActionRecastData = Marshal.GetDelegateForFunctionPointer<getHotbarActionRecastDataDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 40 88 B3 ?? ?? ?? ?? 48 8B 74 24 "));
+        this.getHotbarActionRecastData = Marshal.GetDelegateForFunctionPointer<getHotbarActionRecastDataDelegate>(Service.SigScanner.ScanText("48 89 74 24 10 57 48 83 EC 60 0F 28 05"));
         //Task.Factory.StartNew(this.Initialize);
     }
 

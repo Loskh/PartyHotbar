@@ -1,17 +1,11 @@
 ﻿using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Game.Group;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using ImGuiNET;
-using InteropGenerator.Runtime.Attributes;
+using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using static FFXIVClientStructs.FFXIV.Client.Game.Character.CharacterData.Delegates;
 using static FFXIVClientStructs.FFXIV.Client.UI.Arrays.PartyListNumberArray;
 using static FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule;
 using static PartyHotbar.ActionManager;
@@ -43,13 +37,18 @@ internal unsafe class PartyHotbars : IDisposable
         }
         // if hotbars are attached in predraw ,the game crashes when you exit a duty in a cross realm party.
         Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_PartyList", AttachHotBars);
+        //Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", AttachHotBars);
         Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", PreDraw);
         Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", PreFinalize);
     }
 
     private void AttachHotBars(AddonEvent type, AddonArgs args)
     {
-        var addon = (AddonPartyList*)args.Addon;
+        if (this.Attached)
+        {
+            return; 
+        }
+        var addon = (AddonPartyList*)args.Addon.Address;
 
         for (var i = 0; i < 8; i++)
         {
@@ -128,7 +127,7 @@ internal unsafe class PartyHotbars : IDisposable
     {
         if (!this.Attached)
             return;
-        var addon = (AddonPartyList*)args.Addon;
+        var addon = (AddonPartyList*)args.Addon.Address;
         if (addon == null)
             return;
         if (!addon->IsVisible)

@@ -1,4 +1,6 @@
 ﻿using Dalamud.Configuration;
+using System;
+using System.Collections.Generic;
 
 namespace PartyHotbar;
 

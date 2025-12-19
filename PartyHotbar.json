@@ -1,9 +1,0 @@
-{
-  "Name": "PartyHotbar",
-  "Author": "Loskh",
-  "Punchline": "Add a hotkey bar next to each member on one side of the PartyList Hud.",
-  "Description": "Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.\nEach hotkey bar can have a maximum of 4 buttons.\nA re-login is required to enable this feature.",
-  "IconUrl": null,
-  "Tags": [ "UI"],
-  "ServiceLevel": 12
-}

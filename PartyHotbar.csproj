@@ -1,64 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Dalamud.NET.Sdk/14.0.1">
 	<PropertyGroup>
-		<TargetFramework>net9.0-windows</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<Version>1.0.1.0</Version>
-		<IncludeSymbols>False</IncludeSymbols>
-		<LangVersion>preview</LangVersion>
+		<Name>PartyHotbar</Name>
+		<Author>Loskh</Author>
+		<Version>1.14.0</Version>
+		<Punchline>Add a hotkey bar next to each member on one side of the PartyList Hud.</Punchline>
+		<Description>Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.\nEach hotkey bar can have a maximum of 4 buttons.\nA re-login is required to enable this feature.</Description>
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<DebugType>full</DebugType>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<DebugType>full</DebugType>
-	</PropertyGroup>
-
-	<ItemGroup>
-	  <Compile Remove="lib\**" />
-	  <EmbeddedResource Remove="lib\**" />
-	  <None Remove="lib\**" />
-	</ItemGroup>
-
-
-	<ItemGroup>
-		<PackageReference Include="DalamudPackager" Version="12.0.0" />
-	</ItemGroup>
-
-	<PropertyGroup>
-		<DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-	</PropertyGroup>
-	
-	<ItemGroup>
-		<Reference Include="Dalamud">
-			<Private>false</Private>
-			<HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
-		</Reference>
-		<Reference Include="FFXIVClientStructs">
-			<Private>false</Private>
-			<HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-		</Reference>
-		<Reference Include="ImGui.NET">
-			<Private>false</Private>
-		  <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
-		</Reference>
-		<Reference Include="Lumina">
-			<Private>false</Private>
-			<HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
-		</Reference>
-		<Reference Include="Lumina.Excel">
-			<Private>false</Private>
-			<HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
-		</Reference>
-		<Reference Include="InteropGenerator.Runtime">
-			<Private>false</Private>
-			<HintPath>$(DalamudLibPath)InteropGenerator.Runtime.dll</HintPath>
-		</Reference>
-	</ItemGroup>
-
-
 </Project>

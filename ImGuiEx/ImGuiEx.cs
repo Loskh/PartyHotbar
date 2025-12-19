@@ -1,15 +1,17 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using PartyHotbar;
-using System.Collections;
+using PartyHotbar.ImGuiEx;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace ImGuiNET;
+namespace PartyHotbar.ImGuiEx;
 
 public static partial class ImGuiEx
 {
@@ -83,6 +85,17 @@ public static partial class ImGuiEx
 
     public static bool IsWindowInMainViewport() => ImGui.GetWindowViewport().ID == ImGuiHelpers.MainViewport.ID;
 
+    public static bool ShouldDrawInViewport() => IsWindowInMainViewport() || Util.IsWindowFocused;
+
+    public static void ShouldDrawInViewport(out bool b) => b = ShouldDrawInViewport();
+
+    // Helper function for displaying / hiding windows outside of the main viewport when the game isn't focused, returns the bool to allow using it in if statements to reduce code
+    public static bool SetBoolOnGameFocus(ref bool b)
+    {
+        if (!b)
+            b = Util.IsWindowFocused;
+        return b;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetClipboardTextOrDefault(string def = "")
@@ -114,6 +127,26 @@ public static partial class ImGuiEx
             ImGui.SetClipboardText(text);
     }
 
+    public static void TextMarquee(string text, float speed = 0.1f)
+    {
+        var textWidth = ImGui.CalcTextSize(text).X;
+        var scrollWidth = ImGui.GetContentRegionMax().X + textWidth;
+        var indent = (float)Service.PluginInterface.LoadTimeDelta.TotalSeconds * (scrollWidth * speed) % scrollWidth - textWidth;
+        ImGui.Indent(indent);
+        ImGui.TextUnformatted(text);
+        ImGui.Unindent(indent);
+    }
+
+    public static void TextMarquee(Vector4 color, string text, float speed = 0.1f)
+    {
+        var textWidth = ImGui.CalcTextSize(text).X;
+        var scrollWidth = ImGui.GetContentRegionMax().X + textWidth;
+        var indent = (float)Service.PluginInterface.LoadTimeDelta.TotalSeconds * (scrollWidth * speed) % scrollWidth - textWidth;
+        ImGui.Indent(indent);
+        ImGui.TextColored(color, text);
+        ImGui.Unindent(indent);
+    }
+
     public static bool FontButton(string label, ImFontPtr font)
     {
         ImGui.PushFont(font);
@@ -137,7 +170,7 @@ public static partial class ImGuiEx
         if (IsItemReleased(ImGuiMouseButton.Right)) return true;
 
         using var __ = StyleVarBlock.Begin(ImGuiStyleVar.PopupBorderSize, 1);
-        if (!ImGui.BeginPopupContextItem(null, ImGuiPopupFlags.MouseButtonLeft)) return false;
+        if (!ImGui.BeginPopupContextItem(ImU8String.Empty, ImGuiPopupFlags.MouseButtonLeft)) return false;
         var ret = ImGui.Selectable(FontAwesomeIcon.TrashAlt.ToIconString());
         ImGui.EndPopup();
         return ret;
@@ -229,7 +262,7 @@ public static partial class ImGuiEx
     public static bool RadioBox<T>(string label, ref T e, T[] optionsArray, bool vertical) where T : struct, Enum
     {
         var i = Array.IndexOf(optionsArray, e);
-        var ret = RadioBox(label, ref i, optionsArray.Select(GetDisplayName).ToArray(), vertical);
+        var ret = RadioBox(label, ref i, optionsArray.Select(Util.GetDisplayName).ToArray(), vertical);
         if (ret)
             e = optionsArray[i];
         return ret;
@@ -291,9 +324,9 @@ public static partial class ImGuiEx
         return ret;
     }
 
-    public static unsafe void FloatingDrawable(Action<ImDrawListPtr, float, Vector2> draw, uint timerMS = 1000)
+    public static void FloatingDrawable(Action<ImDrawListPtr, float, Vector2> draw, uint timerMS = 1000)
     {
-        var viewport = ImGui.GetWindowViewport() is { NativePtr: not null } v ? v : ImGui.GetMainViewport();
+        var viewport = ImGui.GetWindowViewport() is { IsNull: false } v ? v : ImGui.GetMainViewport();
         var pos = ImGui.GetMousePos();
         var timer = Stopwatch.StartNew();
 
@@ -324,40 +357,4 @@ public static partial class ImGuiEx
             drawList.AddText(pos, color - alphaReduction, text);
         }, timerMS);
     }
-
-    public static bool IsNumeric(object o) => o switch
-    {
-        //Int128 => true, UInt128 => true,
-        //nint => true, nuint => true,
-        long => true,
-        ulong => true,
-        int => true,
-        uint => true,
-        short => true,
-        ushort => true,
-        sbyte => true,
-        byte => true,
-        double => true,
-        float => true,
-        decimal => true,
-        _ => false
-    };
-
-    public static string GetDisplayName<T>(this T e) where T : struct, Enum
-    {
-        var name = Enum.GetName(e)!;
-        return typeof(T).GetField(name)!.GetCustomAttribute<DisplayAttribute>()?.Name ?? name;
-    }
-
-    public static void Shift(this IList list, int i, int amount)
-    {
-        var count = list.Count;
-        if (i < 0 || i >= count) return;
-
-        var item = list[i];
-        list.RemoveAt(i);
-        list.Insert(Math.Min(Math.Max(i + amount, 0), list.Count), item);
-    }
-
-    public static void Shift(this IList list, int i, float amount) => Shift(list, i, (int)amount);
 }

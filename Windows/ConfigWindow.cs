@@ -1,34 +1,14 @@
-﻿using Dalamud.Game;
-using Dalamud.Game.ClientState.Objects.Types;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Utility;
-using FFXIVClientStructs;
-using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using ImGuiNET;
-using Lumina.Data.Parsing;
-using Lumina.Excel;
-using Lumina.Excel.Sheets;
-using Lumina.Excel.Sheets.Experimental;
+using PartyHotbar.ImGuiEx;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using static FFXIVClientStructs.FFXIV.Client.Game.Character.CharacterData.Delegates;
-using static FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureHotbarModule;
-using static PartyHotbar.ActionManager;
-using static PartyHotbar.Configuration;
 using Action = Lumina.Excel.Sheets.Action;
-using ClassJob = Lumina.Excel.Sheets.ClassJob;
-
 namespace PartyHotbar.Windows;
 
 internal unsafe class ConfigWindow : Window, IDisposable
@@ -111,11 +91,11 @@ internal unsafe class ConfigWindow : Window, IDisposable
         var buttonIndent = 0f;
         for (int i = 0; i < currentActions.Count; i++)
         {
-            using var _ = ImGuiEx.IDBlock.Begin(i);
+            using var _ = ImGuiEx.ImGuiEx.IDBlock.Begin(i);
             var action = currentActions[i];
 
             ImGui.Button("≡");
-            if (ImGuiEx.IsItemDraggedDelta(action, ImGuiMouseButton.Left, ImGui.GetFrameHeightWithSpacing(), false, out var dt) && dt.Y != 0)
+            if (ImGuiEx.ImGuiEx.IsItemDraggedDelta(action, ImGuiMouseButton.Left, ImGui.GetFrameHeightWithSpacing(), false, out var dt) && dt.Y != 0)
             {
                 currentActions.Shift(i, dt.Y);
                 this.config.Save();
@@ -141,7 +121,7 @@ internal unsafe class ConfigWindow : Window, IDisposable
             }
             ImGui.SameLine();
 
-            if (ImGuiEx.DeleteConfirmationButton())
+            if (ImGuiEx.ImGuiEx.DeleteConfirmationButton())
             {
                 currentActions.RemoveAt(i);
                 this.config.Save();
@@ -149,12 +129,12 @@ internal unsafe class ConfigWindow : Window, IDisposable
 
         }
 
-        using (ImGuiEx.IndentBlock.Begin(buttonIndent))
+        using (ImGuiEx.ImGuiEx.IndentBlock.Begin(buttonIndent))
         {
 
             using (ImRaii.Disabled(availableActions.Count() == 0 || currentActions.Count>=4))
             {
-                if (ImGuiEx.FontButton(FontAwesomeIcon.Plus.ToIconString(), UiBuilder.IconFont, new Vector2(buttonWidth, 0)))
+                if (ImGuiEx.ImGuiEx.FontButton(FontAwesomeIcon.Plus.ToIconString(), UiBuilder.IconFont, new Vector2(buttonWidth, 0)))
                 {
                     currentActions.Add(new() { ID = availableActions.First().RowId });
                     this.config.Save();
@@ -198,3 +178,4 @@ internal unsafe class ConfigWindow : Window, IDisposable
     {
     }
 }
+
