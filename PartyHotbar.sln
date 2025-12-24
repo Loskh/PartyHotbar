@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.3.11312.210
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PartyHotbar", "PartyHotbar.csproj", "{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PartyHotbar", "PartyHotbar\PartyHotbar.csproj", "{B4AABE6C-B9A2-41A8-A713-5C6B79D0C86D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KamiToolKit", "KamiToolKit\KamiToolKit.csproj", "{0FC77B1B-A7E0-0E25-A2BF-1211E39B36BB}"
 EndProject

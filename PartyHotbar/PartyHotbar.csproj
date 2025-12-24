@@ -9,10 +9,10 @@
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Compile Remove="KamiToolKit\**" />
-	  <EmbeddedResource Remove="KamiToolKit\**" />
+	  <Compile Remove="..\KamiToolKit\**" />
+	  <EmbeddedResource Remove="..\KamiToolKit\**" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="KamiToolKit\KamiToolKit.csproj" />
+	  <ProjectReference Include="..\KamiToolKit\KamiToolKit.csproj" />
 	</ItemGroup>
 </Project>
