@@ -142,13 +142,8 @@ internal unsafe class PartyHotbars : IDisposable
         if (!addon->IsVisible)
             return;
 
-        if (Service.ClientState.LocalPlayer == null)
-        {
-            return;
-        }
-
         var needUpdateHotbars = false;
-        var classJobId = Service.ClientState.LocalPlayer.ClassJob.Value.RowId;
+        var classJobId = Service.PlayerState!.ClassJob.Value.RowId;
         if (classJobId != this.currentJobId | this.TestMode)
         {
             ClassJobChanged(classJobId);
@@ -187,7 +182,7 @@ internal unsafe class PartyHotbars : IDisposable
                 visible = !(objectId == 0xE000_0000 && objectId == 0);
                 if (this.config.HideSelf)
                 {
-                    if (objectId == (int)Service.ClientState.LocalPlayer!.GameObjectId)
+                    if (objectId == (int)Service.PlayerState!.EntityId)
                     {
                         visible = false;
                     }

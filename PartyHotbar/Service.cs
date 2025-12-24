@@ -26,4 +26,5 @@ internal class Service
     [PluginService] public static IDataManager DataManager { get; set; } = null!;
     [PluginService] public static IClientState ClientState { get; set; } = null!;
     [PluginService] public static ICondition Condition { get; set; } = null!;
+    [PluginService] public static IPlayerState PlayerState { get; set; } = null!;
 }
