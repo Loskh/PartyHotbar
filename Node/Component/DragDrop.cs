@@ -1,4 +1,5 @@
-﻿using Dalamud.Game.Addon.Events;
+﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Game.Addon.Events;
 using Dalamud.Game.Addon.Events.EventDataTypes;
 using Dalamud.Interface.FontIdentifier;
 using FFXIVClientStructs.FFXIV.Client.Graphics;
@@ -21,8 +22,6 @@ namespace PartyHotbar.Node.Component
 {
     internal unsafe class DragDrop : Base
     {
-        public readonly AtkComponentDragDrop* Component;
-
         public uint IconId
         {
             get => ComponentIcon->IconId;
@@ -133,6 +132,8 @@ namespace PartyHotbar.Node.Component
         }
 
         private AtkComponentIcon* ComponentIcon;
+        public readonly AtkComponentDragDrop* Component;
+
         private delegate void DragDropComponentPlayAnimationDelegate(AtkComponentDragDrop* comp, uint labelId);
         private DragDropComponentPlayAnimationDelegate dragDropComponentPlayAnimation = Marshal.GetDelegateForFunctionPointer<DragDropComponentPlayAnimationDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 83 EB 01 74 7E"));
 
@@ -146,14 +147,15 @@ namespace PartyHotbar.Node.Component
         private static getFrameByLabelIdDelegate getFrameByLabelId = Marshal.GetDelegateForFunctionPointer<getFrameByLabelIdDelegate>(Service.SigScanner.ScanText("44 0F B7 CA 48 85 C9 74 60"));
         public unsafe DragDrop() : base("ui/uld/ActionBarCustom.uld", 1002, ComponentType.DragDrop)
         {
-            Node->NodeFlags = NodeFlags.AnchorTop | NodeFlags.AnchorLeft | NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.EmitsEvents; 
+            Node->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.EmitsEvents;
+            Node->Type = NodeType.Component;
             Component = (AtkComponentDragDrop*)Node->Component;
             Component->AtkComponentIcon = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentIcon();
-            Component->Flags = DragDropFlag.Clickable | DragDropFlag.Locked;
+            Component->Flags = DragDropFlag.Locked;
             Component->AtkDragDropInterface.DragDropType = DragDropType.ActionBar_Action;
             Component->AtkDragDropInterface.ActiveNode = Component->UldManager.SearchNodeById(4);
             Component->AtkDragDropInterface.ComponentNode = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentNode();
-            Component->ComponentFlags = 1;
+
             ComponentIcon = Component->AtkComponentIcon;
             ChargeIndicatorNode = ComponentIcon->UldManager.SearchNodeById(10)->GetAsAtkImageNode();
             StateNode = ComponentIcon->UldManager.SearchNodeById(16);
@@ -173,17 +175,36 @@ namespace PartyHotbar.Node.Component
             Node->Width = 44;
             Node->Height = 44;
 
-            this.Node->Priority = 100;
-            Node->DrawFlags |= 1;
+            this.Node->Priority = 0;
+            Node->DrawFlags = 0x8;
             Visible = false;
 
             CollisionNode = Component->UldManager.SearchNodeById(4)->GetAsAtkCollisionNode();
+            CollisionNode->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.HasCollision | NodeFlags.RespondToMouse | NodeFlags.Focusable | NodeFlags.EmitsEvents | NodeFlags.Fill;
+            CollisionNode->DrawFlags = 0x8;
+            CollisionNode->ParentNode = (AtkResNode*)Node;
+            CollisionNode->LinkedComponent = (AtkComponentBase*)Component;
+            CollisionNode->DrawFlags |= (1 << 21);
 
-            Events[AddonEventType.MouseOver] = ProcessEvents;
-            Events[AddonEventType.MouseOut] = ProcessEvents;
-            Events[AddonEventType.MouseDown] = ProcessEvents;
-            Events[AddonEventType.MouseUp] = ProcessEvents;
-            Events[AddonEventType.MouseClick] = ProcessEvents;
+            Component->AtkDragDropInterface.DragDropType = DragDropType.Nothing;
+            Component->AtkDragDropInterface.DragDropReferenceIndex = 0;
+            var data = (AtkUldComponentDataDragDrop*)Component->UldManager.ComponentData;
+            data->Nodes[0] = 2;
+
+            Component->Flags |= DragDropFlag.Clickable;
+            var uldManager = &this.Component->UldManager;
+
+            ((AtkUldComponentInfo*)uldManager->Objects)->ComponentType = ComponentType.DragDrop;
+
+            Component->InitializeFromComponentData(Component->UldManager.ComponentData);
+            Component->Setup();
+            Component->SetEnabledState(true);
+
+            //Events[AddonEventType.MouseOver] = ProcessEvents;
+            //Events[AddonEventType.MouseOut] = ProcessEvents;
+            //Events[AddonEventType.MouseDown] = ProcessEvents;
+            //Events[AddonEventType.MouseUp] = ProcessEvents;
+            //Events[AddonEventType.MouseClick] = ProcessEvents;
         }
         private void LoadIcon(uint iconId)
         {
@@ -237,7 +258,7 @@ namespace PartyHotbar.Node.Component
             switch (atkEventType)
             {
                 case AddonEventType.MouseClick:
-                    this.OnClick?.Invoke(AddonEventType.MouseClick,senderComponent,data);
+                    this.OnClick?.Invoke(AddonEventType.MouseClick, senderComponent, data);
                     break;
                 case AddonEventType.MouseOut:
                     Service.AddonEventManager.ResetCursor();

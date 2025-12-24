@@ -8,4 +8,8 @@
 		<Description>Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.\nEach hotkey bar can have a maximum of 4 buttons.\nA re-login is required to enable this feature.</Description>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="KamiToolKit\**" />
+	  <EmbeddedResource Remove="KamiToolKit\**" />
+	</ItemGroup>
 </Project>

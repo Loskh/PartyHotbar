@@ -31,27 +31,37 @@ internal unsafe class PartyHotbars : IDisposable
         this.hotbarSlots = Array.Empty<HotbarSlot>();
         this.hotbarActionsData = Array.Empty<HotbarActionData>();
 
-        for (var i = 0; i < 8; i++)
-        {
-            this.Hotbars[i] = new Hotbar(actionManager, i);
-        }
         // if hotbars are attached in predraw ,the game crashes when you exit a duty in a cross realm party.
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_PartyList", AttachHotBars);
+        //Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_PartyList", AttachHotBars);
         //Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", AttachHotBars);
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", PreDraw);
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", PreFinalize);
+        //Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", PreDraw);
+        //Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", PreFinalize);
+
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ConfigSystem", AttachTest);
     }
 
+    private void AttachTest(AddonEvent type, AddonArgs args)
+    {
+        this.Hotbars[0] = new Hotbar(actionManager, 0);
+        var addon = (AtkUnitBase*)args.Addon.Address;
+        this.Hotbars[0].AttachNode(addon->RootNode, NodePosition.AsLastChild);
+        this.Hotbars[0].SetHotbarActions(this.actions, 50, (uint)config.XPitch, config.Scale);
+        //this.Hotbars[0].BindEvents((AtkUnitBase*)addon);
+        addon->UpdateCollisionNodeList(false);
+        addon->UldManager.UpdateDrawNodeList();
+    }
     private void AttachHotBars(AddonEvent type, AddonArgs args)
     {
         if (this.Attached)
         {
             return; 
         }
+
         var addon = (AddonPartyList*)args.Addon.Address;
 
         for (var i = 0; i < 8; i++)
         {
+            this.Hotbars[i] = new Hotbar(actionManager, i);
             ref var partyMember = ref addon->PartyMembers[i];
             var partyMemberNode = partyMember.PartyMemberComponent->OwnerNode->GetAsAtkComponentNode();
             this.Hotbars[i].AttachNode(partyMemberNode, NodePosition.AfterAllSiblings);
@@ -65,7 +75,7 @@ internal unsafe class PartyHotbars : IDisposable
             Service.PluginLog.Info($"anchorNode {(nint)anchorNode:X}");
             this.Hotbars[i].SetHotbarActions(this.actions, (anchorNode->Y + anchorNode->Y + anchorNode->Height) / 2, (uint)config.XPitch, config.Scale);
             this.Hotbars[i].Node->X = (anchorNode->X - this.Hotbars[i].Node->Width) * config.Scale - config.XOffset;
-            this.Hotbars[i].Node->DrawFlags = 8 | 1;
+            //this.Hotbars[i].Node->DrawFlags = 8 | 1;
 
             Service.PluginLog.Info($"Rebind Events {i}");
             this.Hotbars[i].BindEvents((AtkUnitBase*)addon);
@@ -79,7 +89,6 @@ internal unsafe class PartyHotbars : IDisposable
         collisionNode->X = -(this.Hotbars[0].Node->Width) * config.Scale;
         collisionNode->DrawFlags |= 1;
         addon->UpdateCollisionNodeList(false);
-
         addon->UldManager.UpdateDrawNodeList();
         this.Attached = true;
     }
@@ -175,7 +184,7 @@ internal unsafe class PartyHotbars : IDisposable
                 var visible = pMember->Targetable;
                 //uint* contentIdPtr = (uint*)(pMember + 164);
                 var objectId = (uint)pMember->ContentId;
-                visible = !(objectId == 0xE000_0000);
+                visible = !(objectId == 0xE000_0000 && objectId == 0);
                 if (this.config.HideSelf)
                 {
                     if (objectId == (int)Service.ClientState.LocalPlayer!.GameObjectId)
@@ -224,9 +233,16 @@ internal unsafe class PartyHotbars : IDisposable
             return;
         for (var i = 0; i < 8; i++)
         {
-
             this.Hotbars[i]?.Dispose();
             Service.PluginLog.Info($"Hotbar {i} is diposed");
+        }
+        var addon = (AddonPartyList*)Service.GameGui.GetAddonByName("_PartyList").Address;
+        if (addon != null)
+        {
+            var collisionNode = addon->UldManager.SearchNodeById(22);
+            collisionNode->DrawFlags |= 1;
+            addon->UpdateCollisionNodeList(false);
+            addon->UldManager.UpdateDrawNodeList();
         }
         Attached = false;
     }

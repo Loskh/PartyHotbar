@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using PartyHotbar.ImGuiEx;
+using PartyHotbar.Node;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -132,7 +133,7 @@ internal unsafe class ConfigWindow : Window, IDisposable
         using (ImGuiEx.ImGuiEx.IndentBlock.Begin(buttonIndent))
         {
 
-            using (ImRaii.Disabled(availableActions.Count() == 0 || currentActions.Count>=4))
+            using (ImRaii.Disabled(availableActions.Count() == 0 || currentActions.Count >= Hotbar.MaxActionCount))
             {
                 if (ImGuiEx.ImGuiEx.FontButton(FontAwesomeIcon.Plus.ToIconString(), UiBuilder.IconFont, new Vector2(buttonWidth, 0)))
                 {

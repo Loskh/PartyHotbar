@@ -1,23 +1,29 @@
 ﻿using Dalamud.Game.Addon.Events;
 using Dalamud.Game.Addon.Events.EventDataTypes;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
 using FFXIVClientStructs.FFXIV.Client.System.Resource;
 using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using static Lumina.Data.Parsing.Uld.NodeData;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkResNode.Delegates;
 using ComponentType = FFXIVClientStructs.FFXIV.Component.GUI.ComponentType;
-
 namespace PartyHotbar.Node.Component;
 
 internal unsafe class Base : IDisposable
 {
+    internal class EventHandlerInfo
+    {
+        public AtkEventListener.Delegates.ReceiveEvent? OnReceiveEventDelegate;
+        public Action? OnActionDelegate;
+    }
+
+
     private delegate ResourceHandle* GetResourceSyncDelegate(ResourceCategory* category, uint* type, byte* path, nint para);
     private delegate void BuildComponentDelegate(AtkUldManager* AtkUldManager, nint res, uint componentId, ushort* timeline, AtkUldAsset* uldAsset, AtkUldPartsList* uldPartList, ushort assetNum, ushort partsNum, AtkResourceRendererManager* renderManager, bool a, bool b);
     private delegate void BuildComponentTimelineDelegate(AtkUldManager* AtkUldManager, nint res, uint componentId, AtkTimelineManager* timelineManager, AtkResNode* resNode);
@@ -42,9 +48,13 @@ internal unsafe class Base : IDisposable
         get => Node->IsVisible();
         set
         {
-            if (Node->IsVisible() != value)
+            if (value)
             {
-                Node->ToggleVisibility(value);
+                Node->NodeFlags |= NodeFlags.Visible;
+            }
+            else
+            {
+                Node->NodeFlags &= ~NodeFlags.Visible;
             }
         }
     }
@@ -107,6 +117,7 @@ internal unsafe class Base : IDisposable
         componentNode->Component = uldManager->CreateAtkComponent(componentType);
         componentNode->Component->Initialize();
         componentNode->Component->OwnerNode = componentNode;
+        componentNode->Component->ComponentFlags = 1;
         componentNode->Component->UldManager.UldResourceHandle = uldManager->UldResourceHandle;
         componentNode->Component->UldManager.ResourceFlags = AtkUldManagerResourceFlag.Initialized;
         componentNode->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.EmitsEvents;
@@ -118,6 +129,11 @@ internal unsafe class Base : IDisposable
 
         buildComponent((AtkUldManager*)Unsafe.AsPointer(ref componentNode->Component->UldManager), (nint)componentResourcePtr, componentId, tinelineNum, uldManager->Assets, uldManager->PartsList, uldManager->AssetCount, uldManager->PartsListCount, uldManager->ResourceRendererManager, true, true);
         buildComponentTimeline((AtkUldManager*)Unsafe.AsPointer(ref componentNode->Component->UldManager), (nint)componentResourcePtr, componentId, uldManager->TimelineManager, (AtkResNode*)componentNode);
+        //uldManager->UpdateDrawNodeList();
+        uldManager->InitializeResourceRendererManager();
+        uldManager->UpdateDrawNodeList();
+        uldManager->ResourceFlags = AtkUldManagerResourceFlag.Initialized | AtkUldManagerResourceFlag.ArraysAllocated;
+        uldManager->LoadedState = AtkLoadState.Loaded;
         return componentNode;
     }
     private static AtkUldManager* GetUldManager(string uldPath)
@@ -139,12 +155,13 @@ internal unsafe class Base : IDisposable
         //UldManagerCache[uldPath] = (nint)newUldManager;
         return newUldManager;
     }
-    public void AttachNode(AtkResNode* attachTargetNode, NodePosition position)
+    public void AttachNode(AtkResNode* attachTargetNode)
     {
         if (Addon != null)
             throw new Exception($"{(nint)Node:X} {Node->NodeId} has attached to {Addon->NameString}");
         NodeLinker.AttachNode((AtkResNode*)Node, attachTargetNode, NodePosition.AsLastChild);
     }
+
     public void DetachNode()
     {
         NodeLinker.DetachNode((AtkResNode*)Node);
@@ -183,7 +200,6 @@ internal unsafe class Base : IDisposable
     {
         Node = BuildComponentNode(uldPath, componentId, componentType);
     }
-
     public void RemoveEvents()
     {
         foreach (var item in EventHandles)

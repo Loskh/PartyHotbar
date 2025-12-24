@@ -21,31 +21,97 @@ using System.Text;
 using System.Threading.Tasks;
 using static Dalamud.Interface.Utility.Raii.ImRaii;
 using static FFXIVClientStructs.FFXIV.Client.UI.ListPanel;
+using static Lumina.Data.Parsing.Uld.NodeData;
 using Action = Lumina.Excel.Sheets.Action;
 namespace PartyHotbar.Node;
 
 internal unsafe class Hotbar : IDisposable
 {
+    public static readonly uint MaxActionCount = 4;
     private List<DragDrop> actionButtons { get; set; } = [];
     //public IPartyMember PartyMember => Service.PartyList.
-    public AtkResNode* Node { get; set; } = null!;
+    public AtkComponentNode* Node { get; set; } = null!;
     public readonly int PartyListIndex;
     private readonly ActionManager actionManager;
     public uint NodeId { get => Node->NodeId; set => Node->NodeId = value; }
+    public bool Visible
+    {
+        get => Node->IsVisible();
+        set
+        {
+            if (Node->IsVisible() != value)
+            {
+                Node->ToggleVisibility(value);
+            }
+        }
+    }
     public Hotbar(ActionManager actionManager, int partIndex)
     {
-        Node = (AtkResNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkResNode), 8uL);
+        Node = (AtkComponentNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkComponentNode), 8uL);
         Node->Ctor();
-        Node->Type = NodeType.Res;
+        Node->Type = (NodeType)1004;
+
+        var componentBase = (AtkComponentBase*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkComponentBase), 8uL);
+        componentBase->Ctor();
+        componentBase->Initialize();
+        Node->Component = componentBase;
+        var collisionNode = (AtkCollisionNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkCollisionNode), 8uL);
+        collisionNode->Ctor();
+        collisionNode->Type = NodeType.Collision;
+        collisionNode->ParentNode = (AtkResNode*)Node;
+        collisionNode->ToggleVisibility(true);
+        componentBase->OwnerNode = (AtkComponentNode*)Node;
+        componentBase->ComponentFlags = 1;
+
+        var resNode = (AtkResNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkResNode), 8uL);
+        resNode->Ctor();
+        resNode->Type = NodeType.Res;
+        resNode->ParentNode = (AtkResNode*)Node;
+        resNode->ToggleVisibility(true);
+
+        ref var uldManager = ref componentBase->UldManager;
+        uldManager.Objects = (AtkUldObjectInfo*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkUldComponentInfo), 8uL);
+
+        var objects = (AtkUldComponentInfo*)uldManager.Objects;
+        uldManager.ObjectCount = 1;
+
+        uldManager.RootNode = (AtkResNode*)collisionNode;
+        objects->NodeList = (AtkResNode**)IMemorySpace.GetUISpace()->Malloc(2 * (ulong)sizeof(AtkResNode**), 8uL);
+        objects->NodeList[0] = (AtkResNode*)collisionNode;
+        objects->NodeCount = 1;
+
+        NodeLinker.AttachNode(resNode, Node->Component->UldManager.RootNode, NodePosition.AfterAllSiblings);
+
+        objects->Id = 1001;
+        objects->ComponentType = ComponentType.Base;
+        uldManager.NodeListCount = 1;
+
+        for (var i = 0; i < MaxActionCount; i++)
+        {
+            var button = new DragDrop() { NodeId = (uint)i };
+            actionButtons.Add(button);
+            button.AttachNode(resNode);
+            button.Visible = true;
+            var index = i;
+            button.OnClick = (_,_,_) => OnClick(index);
+        }
+
+        uldManager.InitializeResourceRendererManager();
+
         Node->NodeId = 114514;
         Node->ToggleVisibility(true);
-        PartyListIndex = partIndex;
         Node->Width = 44;
         Node->Height = 44;
         Node->DrawFlags |= 1;
-        Node->NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop;
+        //Node->NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop;
         this.Node->Priority = 100;
+
+        uldManager.UpdateDrawNodeList();
+        uldManager.ResourceFlags = AtkUldManagerResourceFlag.Initialized | AtkUldManagerResourceFlag.ArraysAllocated;
+        uldManager.LoadedState = AtkLoadState.Loaded;
+
         this.actionManager = actionManager;
+        PartyListIndex = partIndex;
     }
 
     public Vector2 CenterPosition = new Vector2(0, 0);
@@ -62,15 +128,6 @@ internal unsafe class Hotbar : IDisposable
         this.Node->SetScale(scale, scale);
         for (var i = 0; i < actions.Length; i++)
         {
-            if (i >= actionButtons.Count)
-            {
-                var index = i;
-                var button = new DragDrop() { NodeId = (uint)(200000 + i + 1) };
-                actionButtons.Add(button);
-                button.AttachNode(Node, NodePosition.AsLastChild);
-                button.OnClick = (_, _, _) => OnClick(index);
-            }
-
             actionButtons[i].Visible = true;
             actionButtons[i].IconId = actions[i].Icon;
             actionButtons[i].X = XPitch * i;
@@ -80,6 +137,7 @@ internal unsafe class Hotbar : IDisposable
             actionButtons[i].RecastPercent = 0;
             actionButtons[i].ChargePercent = 0;
             actionButtons[i].Reset();
+            actionButtons[i].Node->DrawFlags |= 1;
         }
         for (var i = actions.Length; i < actionButtons.Count; i++)
         {
@@ -89,22 +147,23 @@ internal unsafe class Hotbar : IDisposable
 
     private void OnClick(int index)
     {
+        Service.PluginLog.Info($"Clicked");
         //Service.PluginLog.Info($"Clicked {Actions[index].Name.ToString()} {mainGroup.GetPartyMemberByIndex(PartyListIndex) == null}");
         //ref var target =ref partyListNumberArray->PartyMembers[PartyListIndex];
-        var partyListNumberArray = PartyListNumberArray.Instance();
-        var target =  partyListNumberArray->PartyMembers[PartyListIndex];
-        Service.PluginLog.Info($"Clicked {Actions[index].Name.ToString()} {target.ContentId:X} {PartyListIndex} -> {target.ContentId:X}");
-        actionManager.Manager->UseAction(ActionType.Action, Actions[index].RowId, (ulong)target.ContentId);
+       //var partyListNumberArray = PartyListNumberArray.Instance();
+       // var target = partyListNumberArray->PartyMembers[PartyListIndex];
+       // Service.PluginLog.Info($"Clicked {Actions[index].Name.ToString()} {target.ContentId:X} {PartyListIndex} -> {target.ContentId:X}");
+       // actionManager.Manager->UseAction(ActionType.Action, Actions[index].RowId, (ulong)target.ContentId);
     }
 
     public void Update(in HotbarActionData* pDataArray, bool visible)
     {
-        if (!visible || pDataArray==null)
+        if (!visible || pDataArray == null)
         {
-            this.Node->ToggleVisibility(false);
+            this.Visible = false;
             return;
         }
-        this.Node->ToggleVisibility(true);
+        this.Visible = true;
         //var partyMember = mainGroup->PartyMembers[PartyListIndex];
         for (int i = 0; i < Actions.Length; i++)
         {
@@ -130,6 +189,7 @@ internal unsafe class Hotbar : IDisposable
             }
             this.actionButtons[i].RecastTime = (ushort)pData->RecastTimeSeconds;
             this.actionButtons[i].Enabled = pData->IsEnabled;
+            actionButtons[i].Node->DrawFlags |= 1;
         }
     }
 
@@ -158,7 +218,7 @@ internal unsafe class Hotbar : IDisposable
 
     internal void DetachNode()
     {
-        NodeLinker.DetachNode(Node);
+        NodeLinker.DetachNode((AtkResNode*)Node);
         if (AttachedComponentNode != null)
         {
             AttachedComponentNode->Component->UldManager.UpdateDrawNodeList();
