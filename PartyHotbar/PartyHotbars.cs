@@ -179,7 +179,7 @@ internal unsafe class PartyHotbars : IDisposable
                 var visible = pMember->Targetable;
                 //uint* contentIdPtr = (uint*)(pMember + 164);
                 var objectId = (uint)pMember->ContentId;
-                visible = !(objectId == 0xE000_0000 && objectId == 0);
+                visible = !(objectId == 0xE000_0000 || objectId == 0);
                 if (this.config.HideSelf)
                 {
                     if (objectId == (int)Service.PlayerState!.EntityId)
