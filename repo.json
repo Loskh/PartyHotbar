@@ -1,0 +1,18 @@
+[{
+	"Name": "PartyHotbar",
+	"Author": "Loskh",
+  "Punchline": "Add a hotkey bar next to each member on one side of the PartyList Hud.",
+	"Description": "Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.\\nEach hotkey bar can have a maximum of 4 buttons.\\nA re-login is required to enable this feature.",
+	"InternalName": "PartyHotbar",
+	"AssemblyVersion": "1.14.0.0",
+	"TestingAssemblyVersion": "1.14.0.0",
+	"ApplicableVersion": "any",
+	"DalamudApiLevel": 14,
+	"IsHide": "False",
+	"IsTestingExclusive": "False",
+	"DownloadCount": 0,
+	"LastUpdate": 0,
+	"DownloadLinkInstall": "https://github.com/Loskh/PartyHotbar/releases/download/1.14.0.0/latest.zip",
+	"DownloadLinkTesting": "https://github.com/Loskh/PartyHotbar/releases/download/1.14.0.0/latest.zip",
+	"DownloadLinkUpdate": "https://github.com/Loskh/PartyHotbar/releases/download/1.14.0.0/latest.zip",
+}]
