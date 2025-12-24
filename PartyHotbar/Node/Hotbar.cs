@@ -46,6 +46,7 @@ internal unsafe class Hotbar : ComponentNode<AtkComponentBase, AtkUldComponentIn
             var index = i;
             button.OnClicked = (_) => OnClick(index);
         }
+        PartyListIndex = partIndex;
         this.actionManager = actionManager;
     }
 
