@@ -3,6 +3,7 @@ using Dalamud.Hooking;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using KamiToolKit;
 using PartyHotbar.Node;
 using PartyHotbar.Windows;
 using System.Runtime.InteropServices;
@@ -22,6 +23,7 @@ public unsafe class Plugin : IDalamudPlugin
     public unsafe Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
+        KamiToolKitLibrary.Initialize(pluginInterface);
         this.ActionManager = new ActionManager(this);
         this.configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         configWindow = new ConfigWindow(this, this.ActionManager, this.configuration);

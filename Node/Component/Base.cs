@@ -152,7 +152,7 @@ internal unsafe class Base : IDisposable
         newUldManager->ResourceFlags = AtkUldManagerResourceFlag.Initialized;
         newUldManager->BaseType = AtkUldManagerBaseType.Widget;
         buildWidget(newUldManager, (byte*)(char*)&resourcePtr[*((uint*)resourcePtr + 2)], (byte*)(char*)&resourcePtr[*((uint*)resourcePtr + 3)]);
-        //UldManagerCache[uldPath] = (nint)newUldManager;
+        UldManagerCache[uldPath] = (nint)newUldManager;
         return newUldManager;
     }
     public void AttachNode(AtkResNode* attachTargetNode)

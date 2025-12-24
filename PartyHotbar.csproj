@@ -12,4 +12,7 @@
 	  <Compile Remove="KamiToolKit\**" />
 	  <EmbeddedResource Remove="KamiToolKit\**" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="KamiToolKit\KamiToolKit.csproj" />
+	</ItemGroup>
 </Project>

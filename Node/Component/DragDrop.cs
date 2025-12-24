@@ -1,26 +1,16 @@
-﻿using Dalamud.Bindings.ImGui;
-using Dalamud.Game.Addon.Events;
+﻿using Dalamud.Game.Addon.Events;
 using Dalamud.Game.Addon.Events.EventDataTypes;
-using Dalamud.Interface.FontIdentifier;
 using FFXIVClientStructs.FFXIV.Client.Graphics;
-using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Common.Math;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit.Nodes;
 using Serilog;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using static FFXIVClientStructs.FFXIV.Client.Game.Fate.FateManager.Delegates;
-using static Lumina.Data.Parsing.Uld.NodeData;
 using FontType = FFXIVClientStructs.FFXIV.Component.GUI.FontType;
-
 namespace PartyHotbar.Node.Component
 {
-    internal unsafe class DragDrop : Base
+    internal unsafe class DragDrop : ComponentNode<AtkComponentDragDrop, AtkUldComponentDataDragDrop>
     {
         public uint IconId
         {
@@ -145,14 +135,13 @@ namespace PartyHotbar.Node.Component
 
         private delegate uint getFrameByLabelIdDelegate(AtkResNode* node, ushort labelId);
         private static getFrameByLabelIdDelegate getFrameByLabelId = Marshal.GetDelegateForFunctionPointer<getFrameByLabelIdDelegate>(Service.SigScanner.ScanText("44 0F B7 CA 48 85 C9 74 60"));
-        public unsafe DragDrop() : base("ui/uld/ActionBarCustom.uld", 1002, ComponentType.DragDrop)
+        public unsafe DragDrop() : base("ui/uld/ActionBarCustom.uld", 1002, ComponentType.DragDrop,4)
         {
-            Node->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.EmitsEvents;
-            Node->Type = NodeType.Component;
             Component = (AtkComponentDragDrop*)Node->Component;
             Component->AtkComponentIcon = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentIcon();
             Component->Flags = DragDropFlag.Locked;
             Component->AtkDragDropInterface.DragDropType = DragDropType.ActionBar_Action;
+            Component->AtkDragDropInterface.DragDropReferenceIndex = 0;
             Component->AtkDragDropInterface.ActiveNode = Component->UldManager.SearchNodeById(4);
             Component->AtkDragDropInterface.ComponentNode = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentNode();
 
@@ -177,17 +166,8 @@ namespace PartyHotbar.Node.Component
 
             this.Node->Priority = 0;
             Node->DrawFlags = 0x8;
-            Visible = false;
+            CollisionNode.DrawFlags |= KamiToolKit.Classes.DrawFlags.ClickableCursor;
 
-            CollisionNode = Component->UldManager.SearchNodeById(4)->GetAsAtkCollisionNode();
-            CollisionNode->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled | NodeFlags.HasCollision | NodeFlags.RespondToMouse | NodeFlags.Focusable | NodeFlags.EmitsEvents | NodeFlags.Fill;
-            CollisionNode->DrawFlags = 0x8;
-            CollisionNode->ParentNode = (AtkResNode*)Node;
-            CollisionNode->LinkedComponent = (AtkComponentBase*)Component;
-            CollisionNode->DrawFlags |= (1 << 21);
-
-            Component->AtkDragDropInterface.DragDropType = DragDropType.Nothing;
-            Component->AtkDragDropInterface.DragDropReferenceIndex = 0;
             var data = (AtkUldComponentDataDragDrop*)Component->UldManager.ComponentData;
             data->Nodes[0] = 2;
 
@@ -200,11 +180,8 @@ namespace PartyHotbar.Node.Component
             Component->Setup();
             Component->SetEnabledState(true);
 
-            //Events[AddonEventType.MouseOver] = ProcessEvents;
-            //Events[AddonEventType.MouseOut] = ProcessEvents;
-            //Events[AddonEventType.MouseDown] = ProcessEvents;
-            //Events[AddonEventType.MouseUp] = ProcessEvents;
-            //Events[AddonEventType.MouseClick] = ProcessEvents;
+            AddEvent(AtkEventType.DragDropClick, DragDropClickHandler);
+
         }
         private void LoadIcon(uint iconId)
         {
@@ -249,36 +226,19 @@ namespace PartyHotbar.Node.Component
             StateNode->Timeline->PlayAnimation(AtkTimelineJumpBehavior.Start, (ushort)19);
         }
 
-        private void ProcessEvents(AddonEventType atkEventType, Base senderComponent, AddonEventData data)
+        /// <summary>
+        ///     Event that is triggered when the item is clicked
+        /// </summary>
+        public Action<DragDrop>? OnClicked { get; set; }
+
+        private void DragDropClickHandler(AtkEventListener* thisPtr, AtkEventType eventType, int eventParam, AtkEvent* atkEvent, AtkEventData* atkEventData)
         {
-            if (!this.Visible)
-            {
-                return;
-            }
-            switch (atkEventType)
-            {
-                case AddonEventType.MouseClick:
-                    this.OnClick?.Invoke(AddonEventType.MouseClick, senderComponent, data);
-                    break;
-                case AddonEventType.MouseOut:
-                    Service.AddonEventManager.ResetCursor();
-                    //Node->Timeline->PlayAnimation(AtkTimelineJumpBehavior.LoopForever, 4);
-                    dragDropComponentPlayAnimation(Component, 4);
-                    break;
-                case AddonEventType.MouseOver:
-                    Service.AddonEventManager.SetCursor(AddonCursorType.Clickable);
-                    dragDropComponentPlayAnimation(Component, 2);
-                    break;
-                case AddonEventType.MouseDown:
-                    dragDropComponentPlayAnimation(Component, 3);
-                    break;
-                case AddonEventType.MouseUp:
-                    dragDropComponentPlayAnimation(Component, 6);
-                    break;
-                default:
-                    Log.Information("Unhandled event type: {EventType}", atkEventType);
-                    return;
-            }
+            atkEvent->SetEventIsHandled();
+
+            atkEvent->State.StateFlags |= AtkEventStateFlags.HasReturnFlags;
+            atkEvent->State.ReturnFlags = 1;
+
+            OnClicked?.Invoke(this);
         }
     }
 }

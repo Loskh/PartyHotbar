@@ -3,6 +3,7 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit;
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -32,23 +33,24 @@ internal unsafe class PartyHotbars : IDisposable
         this.hotbarActionsData = Array.Empty<HotbarActionData>();
 
         // if hotbars are attached in predraw ,the game crashes when you exit a duty in a cross realm party.
-        //Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_PartyList", AttachHotBars);
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_PartyList", AttachHotBars);
         //Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", AttachHotBars);
-        //Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", PreDraw);
-        //Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", PreFinalize);
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_PartyList", PreDraw);
+        Service.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", PreFinalize);
 
-        Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ConfigSystem", AttachTest);
+        //Service.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ConfigSystem", AttachTest);
     }
 
     private void AttachTest(AddonEvent type, AddonArgs args)
     {
         this.Hotbars[0] = new Hotbar(actionManager, 0);
         var addon = (AtkUnitBase*)args.Addon.Address;
-        this.Hotbars[0].AttachNode(addon->RootNode, NodePosition.AsLastChild);
+        this.Hotbars[0].AttachNode(addon);
         this.Hotbars[0].SetHotbarActions(this.actions, 50, (uint)config.XPitch, config.Scale);
         //this.Hotbars[0].BindEvents((AtkUnitBase*)addon);
         addon->UpdateCollisionNodeList(false);
         addon->UldManager.UpdateDrawNodeList();
+        Attached = true;
     }
     private void AttachHotBars(AddonEvent type, AddonArgs args)
     {
@@ -64,7 +66,7 @@ internal unsafe class PartyHotbars : IDisposable
             this.Hotbars[i] = new Hotbar(actionManager, i);
             ref var partyMember = ref addon->PartyMembers[i];
             var partyMemberNode = partyMember.PartyMemberComponent->OwnerNode->GetAsAtkComponentNode();
-            this.Hotbars[i].AttachNode(partyMemberNode, NodePosition.AfterAllSiblings);
+            this.Hotbars[i].AttachNode(partyMemberNode);
             Service.PluginLog.Info($"Attached {i}");
         }
 
@@ -76,9 +78,7 @@ internal unsafe class PartyHotbars : IDisposable
             this.Hotbars[i].SetHotbarActions(this.actions, (anchorNode->Y + anchorNode->Y + anchorNode->Height) / 2, (uint)config.XPitch, config.Scale);
             this.Hotbars[i].Node->X = (anchorNode->X - this.Hotbars[i].Node->Width) * config.Scale - config.XOffset;
             //this.Hotbars[i].Node->DrawFlags = 8 | 1;
-
-            Service.PluginLog.Info($"Rebind Events {i}");
-            this.Hotbars[i].BindEvents((AtkUnitBase*)addon);
+            //this.Hotbars[i].BindEvents((AtkUnitBase*)addon);
             partyMember.PartyMemberComponent->UldManager.UpdateDrawNodeList();
 
         }
@@ -233,6 +233,7 @@ internal unsafe class PartyHotbars : IDisposable
             return;
         for (var i = 0; i < 8; i++)
         {
+            //NodeLinker.DetachNode(this.Hotbars[i]);
             this.Hotbars[i]?.Dispose();
             Service.PluginLog.Info($"Hotbar {i} is diposed");
         }

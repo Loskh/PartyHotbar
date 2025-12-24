@@ -8,6 +8,7 @@ using FFXIVClientStructs.FFXIV.Client.System.Memory;
 using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.STD.ContainerInterface;
+using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 using Lumina.Excel.Sheets.Experimental;
 using PartyHotbar.Extensions;
@@ -25,93 +26,27 @@ using static Lumina.Data.Parsing.Uld.NodeData;
 using Action = Lumina.Excel.Sheets.Action;
 namespace PartyHotbar.Node;
 
-internal unsafe class Hotbar : IDisposable
+internal unsafe class Hotbar : ComponentNode<AtkComponentBase, AtkUldComponentInfo>
 {
-    public static readonly uint MaxActionCount = 4;
+    public static readonly uint MaxActionCount = 4; 
     private List<DragDrop> actionButtons { get; set; } = [];
-    //public IPartyMember PartyMember => Service.PartyList.
-    public AtkComponentNode* Node { get; set; } = null!;
     public readonly int PartyListIndex;
     private readonly ActionManager actionManager;
-    public uint NodeId { get => Node->NodeId; set => Node->NodeId = value; }
-    public bool Visible
-    {
-        get => Node->IsVisible();
-        set
-        {
-            if (Node->IsVisible() != value)
-            {
-                Node->ToggleVisibility(value);
-            }
-        }
-    }
     public Hotbar(ActionManager actionManager, int partIndex)
     {
-        Node = (AtkComponentNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkComponentNode), 8uL);
-        Node->Ctor();
-        Node->Type = (NodeType)1004;
-
-        var componentBase = (AtkComponentBase*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkComponentBase), 8uL);
-        componentBase->Ctor();
-        componentBase->Initialize();
-        Node->Component = componentBase;
-        var collisionNode = (AtkCollisionNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkCollisionNode), 8uL);
-        collisionNode->Ctor();
-        collisionNode->Type = NodeType.Collision;
-        collisionNode->ParentNode = (AtkResNode*)Node;
-        collisionNode->ToggleVisibility(true);
-        componentBase->OwnerNode = (AtkComponentNode*)Node;
-        componentBase->ComponentFlags = 1;
-
-        var resNode = (AtkResNode*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkResNode), 8uL);
-        resNode->Ctor();
-        resNode->Type = NodeType.Res;
-        resNode->ParentNode = (AtkResNode*)Node;
-        resNode->ToggleVisibility(true);
-
-        ref var uldManager = ref componentBase->UldManager;
-        uldManager.Objects = (AtkUldObjectInfo*)IMemorySpace.GetUISpace()->Malloc((ulong)sizeof(AtkUldComponentInfo), 8uL);
-
-        var objects = (AtkUldComponentInfo*)uldManager.Objects;
-        uldManager.ObjectCount = 1;
-
-        uldManager.RootNode = (AtkResNode*)collisionNode;
-        objects->NodeList = (AtkResNode**)IMemorySpace.GetUISpace()->Malloc(2 * (ulong)sizeof(AtkResNode**), 8uL);
-        objects->NodeList[0] = (AtkResNode*)collisionNode;
-        objects->NodeCount = 1;
-
-        NodeLinker.AttachNode(resNode, Node->Component->UldManager.RootNode, NodePosition.AfterAllSiblings);
-
-        objects->Id = 1001;
-        objects->ComponentType = ComponentType.Base;
-        uldManager.NodeListCount = 1;
-
+        SetInternalComponentType(ComponentType.Base);
+        var resNode = new ResNode();
+        resNode.AttachNode(this);
         for (var i = 0; i < MaxActionCount; i++)
         {
             var button = new DragDrop() { NodeId = (uint)i };
             actionButtons.Add(button);
             button.AttachNode(resNode);
-            button.Visible = true;
+            //button.Visible = true;
             var index = i;
-            button.OnClick = (_,_,_) => OnClick(index);
+            button.OnClicked = (_) => OnClick(index);
         }
-
-        uldManager.InitializeResourceRendererManager();
-
-        Node->NodeId = 114514;
-        Node->ToggleVisibility(true);
-        Node->Width = 44;
-        Node->Height = 44;
-        Node->DrawFlags |= 1;
-        //Node->NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop;
-        this.Node->Priority = 100;
-
-        uldManager.UpdateDrawNodeList();
-        uldManager.ResourceFlags = AtkUldManagerResourceFlag.Initialized | AtkUldManagerResourceFlag.ArraysAllocated;
-        uldManager.LoadedState = AtkLoadState.Loaded;
-
         this.actionManager = actionManager;
-        PartyListIndex = partIndex;
     }
 
     public Vector2 CenterPosition = new Vector2(0, 0);
@@ -128,7 +63,7 @@ internal unsafe class Hotbar : IDisposable
         this.Node->SetScale(scale, scale);
         for (var i = 0; i < actions.Length; i++)
         {
-            actionButtons[i].Visible = true;
+            actionButtons[i].IsVisible = true;
             actionButtons[i].IconId = actions[i].Icon;
             actionButtons[i].X = XPitch * i;
             this.Node->Width = (ushort)(this.Node->X + actionButtons[i].X + actionButtons[i].Width);
@@ -141,29 +76,26 @@ internal unsafe class Hotbar : IDisposable
         }
         for (var i = actions.Length; i < actionButtons.Count; i++)
         {
-            actionButtons[i].Visible = false;
+            actionButtons[i].IsVisible = false;
         }
     }
 
     private void OnClick(int index)
     {
-        Service.PluginLog.Info($"Clicked");
-        //Service.PluginLog.Info($"Clicked {Actions[index].Name.ToString()} {mainGroup.GetPartyMemberByIndex(PartyListIndex) == null}");
-        //ref var target =ref partyListNumberArray->PartyMembers[PartyListIndex];
-       //var partyListNumberArray = PartyListNumberArray.Instance();
-       // var target = partyListNumberArray->PartyMembers[PartyListIndex];
-       // Service.PluginLog.Info($"Clicked {Actions[index].Name.ToString()} {target.ContentId:X} {PartyListIndex} -> {target.ContentId:X}");
-       // actionManager.Manager->UseAction(ActionType.Action, Actions[index].RowId, (ulong)target.ContentId);
+        var partyListNumberArray = PartyListNumberArray.Instance();
+        var target = partyListNumberArray->PartyMembers[PartyListIndex];
+        Service.PluginLog.Info($"Clicked {Actions[index].Name.ToString()} {target.ContentId:X} {PartyListIndex} -> {target.ContentId:X}");
+        actionManager.Manager->UseAction(ActionType.Action, Actions[index].RowId, (ulong)target.ContentId);
     }
 
     public void Update(in HotbarActionData* pDataArray, bool visible)
     {
         if (!visible || pDataArray == null)
         {
-            this.Visible = false;
+            this.IsVisible = false;
             return;
         }
-        this.Visible = true;
+        this.IsVisible = true;
         //var partyMember = mainGroup->PartyMembers[PartyListIndex];
         for (int i = 0; i < Actions.Length; i++)
         {
@@ -194,47 +126,39 @@ internal unsafe class Hotbar : IDisposable
     }
 
     public bool Attached { get; private set; } = false;
-    public void AttachNode(AtkResNode* attachTargetNode, NodePosition position = NodePosition.AsLastChild)
-    {
-        NodeLinker.AttachNode((AtkResNode*)Node, attachTargetNode, position);
-        Attached = true;
-    }
+    //public void AttachNode(AtkResNode* attachTargetNode, NodePosition position = NodePosition.AsLastChild)
+    //{
+    //    NodeLinker.AttachNode((AtkResNode*)Node, attachTargetNode, position);
+    //    Attached = true;
+    //}
     private AtkComponentNode* AttachedComponentNode;
-    public void AttachNode(AtkComponentNode* attachTargetNode, NodePosition position = NodePosition.AsLastChild)
-    {
-        NodeLinker.AttachNode((AtkResNode*)Node, attachTargetNode->Component->UldManager.RootNode, NodePosition.AfterAllSiblings);
-        AttachedComponentNode = attachTargetNode;
-        Attached = true;
-    }
+    //public void AttachNode(AtkComponentNode* attachTargetNode, NodePosition position = NodePosition.AsLastChild)
+    //{
+    //    NodeLinker.AttachNode((AtkResNode*)Node, attachTargetNode->Component->UldManager.RootNode, NodePosition.AfterAllSiblings);
+    //    AttachedComponentNode = attachTargetNode;
+    //    Attached = true;
+    //}
     public AtkUnitBase* Addon { get; private set; }
-    public void BindEvents(AtkUnitBase* addon)
-    {
-        this.Addon = addon;
-        foreach (var item in actionButtons)
-        {
-            item.BindEvents(addon);
-        }
-    }
 
-    internal void DetachNode()
-    {
-        NodeLinker.DetachNode((AtkResNode*)Node);
-        if (AttachedComponentNode != null)
-        {
-            AttachedComponentNode->Component->UldManager.UpdateDrawNodeList();
-        }
-        Attached = false;
-    }
+    //internal void DetachNode()
+    //{
+    //    NodeLinker.DetachNode((AtkResNode*)Node);
+    //    if (AttachedComponentNode != null)
+    //    {
+    //        AttachedComponentNode->Component->UldManager.UpdateDrawNodeList();
+    //    }
+    //    Attached = false;
+    //}
 
-    public void Dispose()
-    {
-        if (Attached)
-        {
-            //foreach (var item in actionButtons)
-            //{
-            //    item.Dispose(false);
-            //}
-            DetachNode();
-        }
-    }
+    //public void Dispose()
+    //{
+    //    if (Attached)
+    //    {
+    //        //foreach (var item in actionButtons)
+    //        //{
+    //        //    item.Dispose(false);
+    //        //}
+    //        DetachNode();
+    //    }
+    //}
 }
