@@ -3,9 +3,12 @@
 	<PropertyGroup>
 		<Name>PartyHotbar</Name>
 		<Author>Loskh</Author>
-		<Version>1.14.1</Version>
+		<Version>2.14.0</Version>
 		<Punchline>Add a hotkey bar next to each member on one side of the PartyList Hud.</Punchline>
-		<Description>Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.\nEach hotkey bar can have a maximum of 4 buttons.\nA re-login is required to enable this feature.</Description>
+		<Description>
+		Add a hotkey bar next to each member on one side of the PartyList Hud to facilitate quick skill casting on members.
+		Each hotkey bar can have a maximum of 4 buttons.
+		</Description>
 		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 	</PropertyGroup>
 	<ItemGroup>
