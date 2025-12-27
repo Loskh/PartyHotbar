@@ -1,13 +1,14 @@
-﻿using Dalamud.Game.Command;
-using Dalamud.Hooking;
+﻿using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using KamiToolKit;
-using PartyHotbar.Node;
+using PartyHotbar.Addon;
+using PartyHotbar.Node.Component;
 using PartyHotbar.Windows;
-using System.Runtime.InteropServices;
-using static PartyHotbar.ActionManager;
+using System;
 
 namespace PartyHotbar;
 
@@ -17,15 +18,16 @@ public unsafe class Plugin : IDalamudPlugin
     private ConfigWindow configWindow;
     internal readonly WindowSystem WindowSystem = new("PartyHotbar");
     internal ActionManager ActionManager = null!;
-
-    internal readonly PartyHotbars PartyHotbars = null!;
+    private const string AddonName = "_Dalamud_PartyHotbarsAddon";
+    internal static PartyHotbars PartyHotbars = null!;
 
     public unsafe Plugin(IDalamudPluginInterface pluginInterface)
     {
         pluginInterface.Create<Service>();
+        DragDrop.ResolveAddress();
         KamiToolKitLibrary.Initialize(pluginInterface);
         this.ActionManager = new ActionManager(this);
-        this.configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        this.configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();                           
         configWindow = new ConfigWindow(this, this.ActionManager, this.configuration);
         WindowSystem.AddWindow(configWindow);
         Service.PluginInterface.UiBuilder.Draw += DrawUI;
@@ -34,8 +36,9 @@ public unsafe class Plugin : IDalamudPlugin
         {
             HelpMessage = "Open Config Window for PartyHotbar"
         });
-        this.PartyHotbars = new PartyHotbars(this.ActionManager, configuration);
+        PartyHotbars ??= new PartyHotbars(this.ActionManager, configuration) { Title = AddonName, InternalName = AddonName };
     }
+
     public void ToggleConfigUI()
     {
         configWindow.Toggle();
@@ -44,7 +47,6 @@ public unsafe class Plugin : IDalamudPlugin
     private void DrawUI()
     {
         WindowSystem.Draw();
-
     }
 
     private void OnCommand(string command, string arguments)
@@ -54,7 +56,10 @@ public unsafe class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        this.PartyHotbars.Dispose();
+        PartyHotbars?.Dispose();
+        //DettachToPartyList();
+        //PartyHotbars?.Dispose();
+        KamiToolKitLibrary.Dispose();
         Service.PluginInterface.UiBuilder.Draw -= DrawUI;
         Service.CommandManager.RemoveHandler("/phb");
         WindowSystem.RemoveAllWindows();

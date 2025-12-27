@@ -4,6 +4,7 @@ using FFXIVClientStructs.FFXIV.Client.Graphics;
 using FFXIVClientStructs.FFXIV.Common.Math;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Nodes;
+using Microsoft.VisualBasic;
 using Serilog;
 using System;
 using System.Runtime.InteropServices;
@@ -125,20 +126,49 @@ namespace PartyHotbar.Node.Component
         public readonly AtkComponentDragDrop* Component;
 
         private delegate void DragDropComponentPlayAnimationDelegate(AtkComponentDragDrop* comp, uint labelId);
-        private DragDropComponentPlayAnimationDelegate dragDropComponentPlayAnimation = Marshal.GetDelegateForFunctionPointer<DragDropComponentPlayAnimationDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 83 EB 01 74 7E"));
+        private static DragDropComponentPlayAnimationDelegate dragDropComponentPlayAnimation = null!;
 
         private delegate void SetComboDelegate(AtkComponentIcon* comp, bool isCombo, bool force);
-        private SetComboDelegate setCombo = Marshal.GetDelegateForFunctionPointer<SetComboDelegate>(Service.SigScanner.ScanText("48 83 EC 38 45 84 C0 44 0F B6 CA"));
+        private static SetComboDelegate setCombo = null!;
 
         private delegate void SetFrameDelegate(AtkResNode* node, int frameId);
-        private static SetFrameDelegate setFrame = Marshal.GetDelegateForFunctionPointer<SetFrameDelegate>(Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 89 6B 30 "));
+        private static SetFrameDelegate setFrame = null!;
 
         private delegate uint getFrameByLabelIdDelegate(AtkResNode* node, ushort labelId);
-        private static getFrameByLabelIdDelegate getFrameByLabelId = Marshal.GetDelegateForFunctionPointer<getFrameByLabelIdDelegate>(Service.SigScanner.ScanText("44 0F B7 CA 48 85 C9 74 60"));
-        public unsafe DragDrop() : base("ui/uld/ActionBarCustom.uld", 1002, ComponentType.DragDrop,4)
+        private static getFrameByLabelIdDelegate getFrameByLabelId = null!;
+
+        //2025.12.23.0000.0000 FFCS break
+        private delegate AtkComponentIcon* getAsAtkComponentIconDelegate(AtkResNode* atkResNode);
+        private static getAsAtkComponentIconDelegate getAsAtkComponentIcon = null!;
+        public static void ResolveAddress()
+        {
+            try
+            {
+                var dragDropComponentPlayAnimationAddress = Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 83 EB 01 74 7E");
+                dragDropComponentPlayAnimation = Marshal.GetDelegateForFunctionPointer<DragDropComponentPlayAnimationDelegate>(dragDropComponentPlayAnimationAddress);
+
+                var setComboAddress = Service.SigScanner.ScanText("48 83 EC 38 45 84 C0 44 0F B6 CA");
+                setCombo = Marshal.GetDelegateForFunctionPointer<SetComboDelegate>(setComboAddress);
+
+                var setFrameAddress = Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 89 6B 30");
+                setFrame = Marshal.GetDelegateForFunctionPointer<SetFrameDelegate>(setFrameAddress);
+
+                var getFrameByLabelIdAddress = Service.SigScanner.ScanText("44 0F B7 CA 48 85 C9 74 60");
+                getFrameByLabelId = Marshal.GetDelegateForFunctionPointer<getFrameByLabelIdDelegate>(getFrameByLabelIdAddress);
+
+                var getAsAtkComponentIconAddress = Service.SigScanner.ScanText("E8 ?? ?? ?? ?? 8D 55 CC");
+                getAsAtkComponentIcon = Marshal.GetDelegateForFunctionPointer<getAsAtkComponentIconDelegate>(getAsAtkComponentIconAddress);
+            }
+            catch (Exception ex)
+            {
+                Service.PluginLog.Error($"{ex}");
+            }
+
+        }
+        public unsafe DragDrop() : base("ui/uld/ActionBarCustom.uld", 1002, ComponentType.DragDrop, 4)
         {
             Component = (AtkComponentDragDrop*)Node->Component;
-            Component->AtkComponentIcon = Component->UldManager.SearchNodeById(2)->GetAsAtkComponentIcon();
+            Component->AtkComponentIcon = getAsAtkComponentIcon(Component->UldManager.SearchNodeById(2));
             Component->Flags = DragDropFlag.Locked;
             Component->AtkDragDropInterface.DragDropType = DragDropType.ActionBar_Action;
             Component->AtkDragDropInterface.DragDropReferenceIndex = 0;

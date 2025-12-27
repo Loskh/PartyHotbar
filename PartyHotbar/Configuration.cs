@@ -15,8 +15,9 @@ internal class Configuration : IPluginConfiguration
 
     public int Version { get; set; } = 0;
     public Dictionary<uint, List<Action>> JobActions { get; set; } = new();
-    public int XPitch = 54;
+    public int XSpace = 54;
     public int XOffset = 0;
+    public bool AlignLeft = true;
     public float Scale = 1.0f;
     public bool HideSelf = true;
 

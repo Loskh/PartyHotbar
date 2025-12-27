@@ -1,84 +1,85 @@
-﻿using Dalamud.Game.Addon.Events;
-using Dalamud.Game.Addon.Lifecycle;
-using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Game.ClientState.Party;
-using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Group;
-using FFXIVClientStructs.FFXIV.Client.System.Memory;
+﻿using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using FFXIVClientStructs.STD.ContainerInterface;
 using KamiToolKit.Nodes;
-using Lumina.Excel.Sheets;
-using Lumina.Excel.Sheets.Experimental;
-using PartyHotbar.Extensions;
 using PartyHotbar.Node.Component;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
-using static Dalamud.Interface.Utility.Raii.ImRaii;
-using static FFXIVClientStructs.FFXIV.Client.UI.ListPanel;
-using static Lumina.Data.Parsing.Uld.NodeData;
 using Action = Lumina.Excel.Sheets.Action;
 namespace PartyHotbar.Node;
 
 internal unsafe class Hotbar : ComponentNode<AtkComponentBase, AtkUldComponentInfo>
 {
-    public static readonly uint MaxActionCount = 4; 
+    //public static readonly uint MaxActionCount = 4;
+    public const uint ButtonSize = 40;
     private List<DragDrop> actionButtons { get; set; } = [];
     public readonly int PartyListIndex;
     private readonly ActionManager actionManager;
+    private ResNode resNode = null!;
     public Hotbar(ActionManager actionManager, int partIndex)
     {
         SetInternalComponentType(ComponentType.Base);
-        var resNode = new ResNode();
+        this.resNode = new ResNode();
+        //for (var i = 0; i < MaxActionCount; i++)
+        //{
+        //    var button = new DragDrop() { NodeId = (uint)i };
+        //    actionButtons.Add(button);
+        //    button.AttachNode(resNode);
+        //    Service.PluginLog.Info($"Created button {i} for hotbar {partIndex}");
+        //    //button.Visible = true;
+        //    var index = i;
+        //    button.OnClicked = (_) => OnClick(index);
+        //}
         resNode.AttachNode(this);
-        for (var i = 0; i < MaxActionCount; i++)
-        {
-            var button = new DragDrop() { NodeId = (uint)i };
-            actionButtons.Add(button);
-            button.AttachNode(resNode);
-            //button.Visible = true;
-            var index = i;
-            button.OnClicked = (_) => OnClick(index);
-        }
-        PartyListIndex = partIndex;
+        this.Node->Height = 44;
+        resNode.Height = 44;
+        this.PartyListIndex = partIndex;
         this.actionManager = actionManager;
     }
 
     public Vector2 CenterPosition = new Vector2(0, 0);
     public Action[] Actions { get; private set; } = new Action[0];
-    private float initY = 0;
 
-    public void SetHotbarActions(Action[] actions, float initY, uint XPitch = 54, float scale = 1.0f)
+    public void SetHotbarActions(Action[] actions, uint xSpace, float scale, bool alignLeft)
     {
         this.Actions = actions;
-        this.initY = initY;
-        this.Node->Y = initY - 44 * scale / 2;
-        this.Node->Height = 44;
-        this.Node->X = 0;
-        this.Node->SetScale(scale, scale);
+        var newWidth = (ushort)((actions.Length * ButtonSize) * scale + xSpace * (actions.Length - 1));
+        var direction = alignLeft ? 1 : -1;
         for (var i = 0; i < actions.Length; i++)
         {
+            if (actionButtons.Count <= i)
+            {
+                var button = new DragDrop() { NodeId = (uint)i };
+                actionButtons.Add(button);
+                button.AttachNode(resNode);
+                var index = i;
+                button.OnClicked = (_) => OnClick(index);
+            }
             actionButtons[i].IsVisible = true;
             actionButtons[i].IconId = actions[i].Icon;
-            actionButtons[i].X = XPitch * i;
-            this.Node->Width = (ushort)(this.Node->X + actionButtons[i].X + actionButtons[i].Width);
+            actionButtons[i].X = (xSpace + ButtonSize * scale) * i;
+            if (!alignLeft)
+            {
+                actionButtons[i].X = newWidth - actionButtons[i].X - ButtonSize * scale;
+            }
             actionButtons[i].ChargeNum = actions[i].MaxCharges;
             actionButtons[i].Chargeable = actions[i].MaxCharges != 0;
             actionButtons[i].RecastPercent = 0;
             actionButtons[i].ChargePercent = 0;
             actionButtons[i].Reset();
             actionButtons[i].Node->DrawFlags |= 1;
+            actionButtons[i].Node->SetScale(scale, scale);
         }
         for (var i = actions.Length; i < actionButtons.Count; i++)
         {
-            actionButtons[i].IsVisible = false;
+            actionButtons[i].DetachNode();
+            actionButtons.RemoveAt(i);
         }
+        this.Node->Width = newWidth;
+        this.Node->Height = (ushort)(ButtonSize * scale);
+        this.resNode.Width = this.Node->Width;
+        this.resNode.Height = this.Node->Height;
+        //this.CollisionNode.Size = this.resNode.Size;
     }
 
     private void OnClick(int index)

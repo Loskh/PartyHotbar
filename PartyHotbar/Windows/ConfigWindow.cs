@@ -5,6 +5,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using PartyHotbar.ImGuiEx;
 using PartyHotbar.Node;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +21,7 @@ internal unsafe class ConfigWindow : Window, IDisposable
     private ActionManager actions { get; } = null!;
     private Configuration config { get; } = null!;
     public HotbarActionData* data;
-    public ConfigWindow(Plugin plugin,ActionManager actions, Configuration config) : base(WindowTitle)
+    public ConfigWindow(Plugin plugin, ActionManager actions, Configuration config) : base(WindowTitle)
     {
         this.plugin = plugin;
         this.actions = actions;
@@ -28,26 +29,44 @@ internal unsafe class ConfigWindow : Window, IDisposable
     }
     public override void Draw()
     {
-        if (!this.plugin.PartyHotbars.Attached)
-        {
-            //return;
-            ImGui.Text("Not Attached");
-            ImGui.Text("Back to title and re-login to attach");
-        }
+        //if (!this.plugin.PartyHotbars.Attached)
+        //{
+        //    //return;
+        //    ImGui.Text("Not Attached");
+        //    ImGui.Text("Back to title and re-login to attach");
+        //}
+        var needSave = false;
         if (ImGui.BeginTabBar("PartyHotbarTabs"))
         {
             if (ImGui.BeginTabItem("Layout"))
             {
-                ImGui.InputInt("X Offset", ref this.config.XOffset);
-                ImGui.InputInt("X Pitch", ref this.config.XPitch);
-                ImGui.SliderFloat("Scale", ref this.config.Scale, 0.1f, 2);
-                if (this.config.XPitch <= 0)
+                if (ImGui.InputInt("X Offset", ref this.config.XOffset))
                 {
-                    this.config.XPitch = 0;
+                    needSave = true;
                 }
-                ImGui.Checkbox("Hide Self", ref this.config.HideSelf);
-                if (ImGui.Button("Save"))
+                if (ImGui.InputInt("X Space", ref this.config.XSpace))
                 {
+                    if (this.config.XSpace <= 0)
+                    {
+                        this.config.XSpace = 0;
+                    }
+                    needSave = true;
+                }
+                if (ImGui.SliderFloat("Scale", ref this.config.Scale, 0.1f, 2))
+                {
+                    needSave = true;
+                }
+                if (ImGui.Checkbox("Hide Self", ref this.config.HideSelf))
+                {
+                    needSave = true;
+                }
+                if (ImGui.Checkbox("Align on Left", ref this.config.AlignLeft))
+                {
+                    needSave = true;
+                }
+                if (needSave)
+                {
+                    //Log.Information("Configuration changed, saving...");
                     this.config.Save();
                 }
                 ImGui.EndTabItem();
@@ -71,16 +90,6 @@ internal unsafe class ConfigWindow : Window, IDisposable
         }
     }
 
-    public override void OnOpen()
-    {
-        base.OnOpen();
-        this.plugin.PartyHotbars.TestMode = true;
-    }
-    public override void OnClose()
-    {
-        base.OnClose();
-        this.plugin.PartyHotbars.TestMode = false;
-    }
     private unsafe void DrawContents()
     {
         if (currentClassJobId == 0)
@@ -133,7 +142,7 @@ internal unsafe class ConfigWindow : Window, IDisposable
         using (ImGuiEx.ImGuiEx.IndentBlock.Begin(buttonIndent))
         {
 
-            using (ImRaii.Disabled(availableActions.Count() == 0 || currentActions.Count >= Hotbar.MaxActionCount))
+            using (ImRaii.Disabled(availableActions.Count() == 0))
             {
                 if (ImGuiEx.ImGuiEx.FontButton(FontAwesomeIcon.Plus.ToIconString(), UiBuilder.IconFont, new Vector2(buttonWidth, 0)))
                 {
@@ -174,6 +183,17 @@ internal unsafe class ConfigWindow : Window, IDisposable
             }
         }
         ImGui.EndChild();
+    }
+
+    public override void OnOpen()
+    {
+        base.OnOpen();
+        Plugin.PartyHotbars.ForceUpdateHotbar = true;
+    }
+    public override void OnClose()
+    {
+        base.OnClose();
+        Plugin.PartyHotbars.ForceUpdateHotbar = false;
     }
     public void Dispose()
     {
