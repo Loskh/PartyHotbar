@@ -34,11 +34,12 @@ internal unsafe class PartyHotbars : NativeAddon
     private bool isOpen = false;
     public bool ForceUpdateHotbar = false;
 
-    public bool IsVisible
-    {
-        get => this.RootNode.IsVisible;
-        set => this.RootNode.IsVisible = value;
-    }
+    //public bool IsVisible
+    //{
+    //    get => this.RootNode.IsVisible;
+    //    set => this.RootNode.IsVisible = value;
+    //}
+    public bool IsVisible = false;
     public PartyHotbars(ActionManager actionManager, Configuration configuration)
     {
         this.Size = new Vector2(AddonInitWidth, AddonInitHeight);
@@ -129,8 +130,14 @@ internal unsafe class PartyHotbars : NativeAddon
             return;
         if (Service.PlayerState == null)
             return;
-        if (!this.IsVisible)
+        if (this.IsVisible)
+        {
+            this.RootNode.IsVisible = true;
+        }else
+        {
+            this.RootNode.IsVisible = false;
             return;
+        }
         var classJobId = Service.PlayerState!.ClassJob.Value.RowId;
         if (classJobId != this.currentJobId || ForceUpdateHotbar)
         {
@@ -259,14 +266,18 @@ internal unsafe class PartyHotbars : NativeAddon
     }
     public override void Dispose()
     {
-        DettachToPartyList();
-        Service.PluginLog.Info("Disposing PartyHotbars");
-        for (var i = 0; i < MaxPartyMemberCount; i++)
+        this.IsVisible = false;
+        Service.Framework.RunOnFrameworkThread(() =>
         {
-            Service.PluginLog.Info($"Disposing PartyHotbar[{i}]");
-            this.Hotbars[i]?.DetachNode();
-            this.Hotbars[i]?.Dispose();
-        }
-        base.Dispose();
+            DettachToPartyList();
+            Service.PluginLog.Info("Disposing PartyHotbars");
+            for (var i = 0; i < MaxPartyMemberCount; i++)
+            {
+                Service.PluginLog.Info($"Disposing PartyHotbar[{i}]");
+                //this.Hotbars[i]?.DetachNode();
+                this.Hotbars[i]?.DetachNode();
+            }
+            base.Dispose();
+        });
     }
 }
