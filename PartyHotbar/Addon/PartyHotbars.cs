@@ -54,13 +54,29 @@ internal unsafe class PartyHotbars : NativeAddon
         this.SetWindowSize(AddonInitWidth, AddonInitHeight);
         AttachToPartyList();
     }
-    //private List<AddonEvent> subscribedEvents = new();
+    private List<AddonEvent> subscribedEvents = new() {
+        AddonEvent.PreReceiveEvent,
+        AddonEvent.PreMove,
+        //AddonEvent.PreUpdate,
+        AddonEvent.PreRequestedUpdate,
+        AddonEvent.PreRefresh
+    };
     private void AttachToPartyList()
     {
         Service.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "_PartyList", OnPartyListDraw);
         Service.AddonLifecycle.RegisterListener(AddonEvent.PostHide, "_PartyList", OnPartyListHide);
         Service.AddonLifecycle.RegisterListener(AddonEvent.PostShow, "_PartyList", OnPartyListShow);
         Service.AddonLifecycle.RegisterListener(AddonEvent.PostMove, "_PartyList", OnPartyListMove);
+
+        //foreach (var item in subscribedEvents)
+        //{
+        //    Service.AddonLifecycle.RegisterListener(item, "_PartyList", ShowEvents);
+        //}
+    }
+
+    private void ShowEvents(AddonEvent type, AddonArgs args)
+    {
+        Service.PluginLog.Info($"{type}");
     }
 
     private bool needResize = false;
@@ -100,6 +116,7 @@ internal unsafe class PartyHotbars : NativeAddon
             this.Open();
             isOpen = true;
             needResize = true;
+            this.IsVisible = true;
         }
     }
 
@@ -152,6 +169,7 @@ internal unsafe class PartyHotbars : NativeAddon
             this.needResize = true;
         }
         UpdateActionState();
+        this.needResize = true;
         if (this.needResize) {
             UpdateHotbarPosition(addon);
             needResize = false;
@@ -251,7 +269,7 @@ internal unsafe class PartyHotbars : NativeAddon
             x += (int)this.addonPartyList->GetScaledWidth(true);
         }
         this.SetWindowPosition(new(x, this.addonPartyList->Y + 32 * scale));
-        this.RootNode.Size = this.Size;
+        //this.RootNode.Size = this.Size;
         addon->RootNode->DrawFlags |= 0xD;
     }
     private void UpdateHotbarActions()
@@ -266,6 +284,11 @@ internal unsafe class PartyHotbars : NativeAddon
     }
     public override void Dispose()
     {
+        //foreach (var item in subscribedEvents)
+        //{
+        //    Service.AddonLifecycle.UnregisterListener(item, "_PartyList", ShowEvents);
+        //}
+
         this.IsVisible = false;
         Service.Framework.RunOnFrameworkThread(() =>
         {
